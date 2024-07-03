@@ -1,6 +1,8 @@
 <template>
   <div>
     <p style="padding: 16px; text-align: center">提交提现订单</p>
+    <el-input v-model.trim="apiUrl" placeholder="apiUrl" clearable></el-input>
+    <el-input v-model.trim="token" placeholder="token" clearable></el-input>
     <el-form
       :model="form"
       :rules="rules"
@@ -15,34 +17,17 @@
           clearable
         ></el-input>
       </el-form-item>
+      <el-form-item label="收款人账号" prop="receiptAccountNo">
+        <el-input
+          v-model.trim="form.receiptAccountNo"
+          placeholder="请输入收款人账号"
+          clearable
+        ></el-input>
+      </el-form-item>
       <el-form-item label="用户姓名" prop="nameSurname">
         <el-input
           v-model.trim="form.nameSurname"
           placeholder="请输入用户姓名"
-          clearable
-        ></el-input>
-      </el-form-item>
-      <el-form-item label="用户名" prop="username">
-        <el-input
-          v-model.trim="form.username"
-          placeholder="请输入用户名"
-          clearable
-        ></el-input>
-      </el-form-item>
-      <el-form-item label="币种" prop="fundType">
-        <el-select
-          v-model.trim="form.fundType"
-          placeholder="请选择币种"
-          clearable
-        >
-          <el-option label="CNY" value="CNY"></el-option>
-          <el-option label="TRY" value="TRY"></el-option>
-        </el-select>
-      </el-form-item>
-      <el-form-item label="订单信息" prop="orderInfo">
-        <el-input
-          v-model.trim="form.orderInfo"
-          placeholder="请输入订单信息"
           clearable
         ></el-input>
       </el-form-item>
@@ -53,61 +38,7 @@
           clearable
         ></el-input>
       </el-form-item>
-      <el-form-item label="收款人账号" prop="receiptAccountNo">
-        <el-input
-          v-model.trim="form.receiptAccountNo"
-          placeholder="请输入收款人账号"
-          clearable
-        ></el-input>
-      </el-form-item>
-      <el-form-item label="收款账户类型" prop="receiptAccountType">
-        <el-select
-          v-model.trim="form.receiptAccountType"
-          placeholder="请选择收款账户类型"
-          clearable
-        >
-          <el-option label="个人账户" value="private"></el-option>
-          <el-option label="对公账户" value="public"></el-option>
-        </el-select>
-      </el-form-item>
-      <el-form-item label="银行编码" prop="bankId">
-        <el-input
-          v-model.trim="form.bankId"
-          placeholder="请输入银行编码"
-          clearable
-        ></el-input>
-      </el-form-item>
-      <el-form-item label="收款账户开户行名称" prop="bankName">
-        <el-input
-          v-model.trim="form.bankName"
-          placeholder="请输入收款账户开户行名称"
-          clearable
-        ></el-input>
-      </el-form-item>
-      <el-form-item label="收款人账户联行号" prop="bankType">
-        <el-input
-          v-model.trim="form.bankType"
-          placeholder="请输入收款人账户联行号"
-          clearable
-        ></el-input>
-      </el-form-item>
-      <el-form-item label="生日" prop="birthday">
-        <el-date-picker
-          v-model="form.birthday"
-          value-format="yyyy-MM-dd"
-          type="date"
-          placeholder="选择日期"
-        >
-        </el-date-picker>
-      </el-form-item>
-      <el-form-item label="证件号" prop="identity">
-        <el-input
-          v-model.trim="form.identity"
-          placeholder="请输入证件号"
-          clearable
-        ></el-input>
-      </el-form-item>
-      <!-- 其他参数根据接口要求添加 -->
+
       <el-form-item>
         <el-button type="primary" @click="submitForm('form')"
           >提交订单</el-button
@@ -123,23 +54,22 @@ import CryptoJS from "crypto-js";
 import qs from "qs";
 export default {
   data() {
+    const validatePayee = (rule, value, callback) => {
+      console.log(!this.form.nameSurname, !this.form.receiptAccountName);
+      if (!this.form.nameSurname && !this.form.receiptAccountName) {
+        callback(new Error("请至少填写一个收款名"));
+      } else {
+        callback();
+      }
+    };
     return {
-      apiUrl: "/api/payment/withdraw",
-      token: "your_token_here", // 替换成实际的token
+      apiUrl: localStorage.getItem("apiUrl") || "",
+      token: localStorage.getItem("apiUrl") || "", // 替换成实际的token
       form: {
         amount: "",
         nameSurname: "",
-        username: "",
-        fundType: "",
-        orderInfo: "",
         receiptAccountName: "",
         receiptAccountNo: "",
-        receiptAccountType: "",
-        bankId: "",
-        bankName: "",
-        bankType: "",
-        birthday: "",
-        identity: "",
       },
       rules: {
         amount: [
@@ -150,101 +80,15 @@ export default {
             trigger: "blur",
           },
         ],
-        nameSurname: [
-          { required: true, message: "请输入用户姓名", trigger: "blur" },
-          {
-            min: 3,
-            max: 128,
-            message: "用户姓名长度在 3 到 128 个字符",
-            trigger: "blur",
-          },
-        ],
-        username: [
-          { required: true, message: "请输入用户名", trigger: "blur" },
-          {
-            min: 1,
-            max: 16,
-            message: "用户名长度在 1 到 16 个字符",
-            trigger: "blur",
-          },
-        ],
-        fundType: [{ required: true, message: "请选择币种", trigger: "blur" }],
-        orderInfo: [
-          { required: true, message: "请输入订单信息", trigger: "blur" },
-          {
-            min: 1,
-            max: 2048,
-            message: "订单信息长度在 1 到 2048 个字符",
-            trigger: "blur",
-          },
-        ],
-        receiptAccountName: [
-          { required: true, message: "请输入收款人名称", trigger: "blur" },
-          {
-            min: 1,
-            max: 64,
-            message: "收款人名称长度在 1 到 64 个字符",
-            trigger: "blur",
-          },
-        ],
+        nameSurname: [{ validator: validatePayee, trigger: "blur" }],
+        receiptAccountName: [{ validator: validatePayee, trigger: "blur" }],
         receiptAccountNo: [
-          { required: true, message: "请输入收款人账号", trigger: "blur" },
-          {
-            min: 1,
-            max: 102,
-            message: "收款人账号长度在 1 到 102 个字符",
-            trigger: "blur",
-          },
-        ],
-        receiptAccountType: [
-          { required: true, message: "请选择收款账户类型", trigger: "blur" },
-        ],
-        bankId: [
-          { required: true, message: "请输入银行编码", trigger: "blur" },
-          {
-            min: 1,
-            max: 32,
-            message: "银行编码长度在 1 到 32 个字符",
-            trigger: "blur",
-          },
-        ],
-        bankName: [
           {
             required: true,
-            message: "请输入收款账户开户行名称",
-            trigger: "blur",
-          },
-          {
-            min: 1,
-            max: 32,
-            message: "收款账户开户行名称长度在 1 到 32 个字符",
+            message: "请输入收款人账号",
             trigger: "blur",
           },
         ],
-        bankType: [
-          {
-            required: true,
-            message: "请输入收款人账户联行号",
-            trigger: "blur",
-          },
-          {
-            min: 1,
-            max: 32,
-            message: "收款人账户联行号长度在 1 到 32 个字符",
-            trigger: "blur",
-          },
-        ],
-        birthday: [{ required: true, message: "请选择日期", trigger: "blur" }],
-        identity: [
-          { required: true, message: "请输入证件号", trigger: "blur" },
-          {
-            min: 1,
-            max: 32,
-            message: "证件号长度在 1 到 32 个字符",
-            trigger: "blur",
-          },
-        ],
-        // 其他参数的验证规则根据接口要求添加
       },
     };
   },
@@ -275,16 +119,28 @@ export default {
       });
     },
     async submitForm(formName) {
+      if (!this.apiUrl || !this.token) {
+        alert("请填写 apiUrl 和 token");
+        return;
+      }
+      //保存 apiUrl token
+      localStorage.setItem("apiUrl", this.apiUrl);
+      localStorage.setItem("token", this.token);
       const status = await this.vaidForm();
       console.log("表单验证结果:", status);
       if (!status) {
         return;
       }
+
       // 准备请求参数
       const withdrawalData = {
         ...this.form,
       };
-
+      for (const key in withdrawalData) {
+        if (withdrawalData[key] === "") {
+          delete withdrawalData[key];
+        }
+      }
       // 生成签名
       const signature = this.generateSignature(withdrawalData);
       console.log("签名:", signature);
