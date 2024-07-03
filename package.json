@@ -56,5 +56,5 @@
     "lint-staged": "^11.1.2",
     "prettier": "^2.4.1",
     "vue-template-compiler": "^2.6.14"
-  },
+  }
 }
